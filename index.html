@@ -57,11 +57,6 @@
     <div class="grid c3" id="svcList"></div>
   </section>
 
-  <section style="padding-top:0">
-    <h2>다른 작업 사례</h2>
-    <div class="grid c2" id="others"></div>
-  </section>
-
   <section>
     <h2>진행 방식</h2>
     <div class="steps">
@@ -119,8 +114,6 @@
     </div>`).join("");
   const ac = S.aftercare;
   document.getElementById("aftercareShort").textContent = `${ac.detail} 무상 운영·유지보수. 이후 월 유지보수 선택.`;
-  document.getElementById("others").innerHTML = S.otherWorks.map((w) => `
-    <a class="card" href="${U.esc(w.demo)}" style="text-decoration:none;color:inherit"><h3>${U.esc(w.name)} →</h3><span class="muted small">${U.esc(w.desc)}</span></a>`).join("");
   document.getElementById("acMonths").textContent = ac.months;
   document.getElementById("acIn").innerHTML = ac.included.map((i) => `<li>${U.esc(i)}</li>`).join("");
   document.getElementById("acOut").innerHTML = ac.excluded.map((i) => `<li>${U.esc(i)}</li>`).join("");

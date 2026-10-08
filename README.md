@@ -10,8 +10,6 @@
 | `demo-merge.html` | 엑셀 여러 개 합치기·중복 제거·자동 집계 (대표 데모) |
 | `demo-homepage.html` + `samples/site.html` | 홈페이지 제작 샘플 (업종 2종, PC/태블릿/휴대폰 미리보기) |
 | `demo-admin.html` | 재고·입출고·거래처 관리 프로그램 |
-| `demo-excel.html` | 주문 엑셀 → 택배 송장 양식 변환 + 상품별 집계 (실제 파일 처리, 브라우저 안에서만) |
-| `demo-kiosk.html` | 무인매장 QR 결제 → 기기 ON/OFF + 사장님 현황판 (가짜 결제, 60배속 시계) |
 | `demo-dashboard.html` | 경쟁사 가격 모니터링 대시보드 (가상 샘플 데이터 + 수집 시뮬레이션) |
 | `assets/style.css`, `assets/common.js` | 공통 디자인·도우미 함수 |
 
