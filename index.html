@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>업무 자동화 포트폴리오</title>
+<meta name="description" content="엑셀·주문 처리, 데이터 수집, 예약 웹페이지 자동화 — 직접 체험해보는 데모">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .hero { padding: 56px 0 32px; }
+  .hero p.lead { font-size: clamp(16px, 2.2vw, 19px); color: var(--muted); max-width: 640px; margin: 0 0 22px; }
+  .pain { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .pain .card { padding: 16px; }
+  .pain b { display: block; margin-bottom: 4px; }
+  .svc .price { font-size: 20px; font-weight: 800; margin: 6px 0 10px; }
+  .svc ul { padding-left: 18px; margin: 10px 0 16px; }
+  .svc { display: flex; flex-direction: column; }
+  .svc .actions { margin-top: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .steps { counter-reset: s; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .steps .card::before { counter-increment: s; content: counter(s); display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 800; margin-bottom: 8px; }
+  details { border-bottom: 1px solid var(--border); padding: 14px 0; }
+  summary { font-weight: 700; cursor: pointer; }
+  details p { margin: 8px 0 0; color: var(--muted); }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="index.html" data-brand></a>
+  <a class="btn primary" data-kmong data-contact-text></a>
+</div></header>
+
+<main class="wrap">
+  <div class="hero">
+    <span class="badge">설치 없이 바로 체험</span>
+    <h1 id="tagline"></h1>
+    <p class="lead" id="subTagline"></p>
+    <div class="row">
+      <a class="btn primary" href="#services">데모 체험하기</a>
+      <a class="btn" data-kmong>견적 문의</a>
+    </div>
+  </div>
+
+  <section style="padding-top:8px">
+    <h2>혹시 이런 일, 매일 손으로 하고 계신가요?</h2>
+    <p class="muted">대부분 "원래 그렇게 하는 거"라고 생각하시지만, 거의 다 자동으로 바꿀 수 있습니다.</p>
+    <div class="pain">
+      <div class="card"><b>📦 주문 엑셀 → 송장 양식 복붙</b><span class="muted small">같은 손님 주문 합치고, 칸 맞추고… 하루 30분</span></div>
+      <div class="card"><b>📊 매출·재고 집계표 작성</b><span class="muted small">여러 파일 열어서 숫자 옮겨 적기</span></div>
+      <div class="card"><b>🔎 경쟁사 가격 확인</b><span class="muted small">매일 사이트 돌아다니며 가격 메모</span></div>
+      <div class="card"><b>📞 전화·문자로 예약 받기</b><span class="muted small">장부에 적고, 노쇼에 속상하고</span></div>
+    </div>
+  </section>
+
+  <section id="services">
+    <h2>서비스 & 직접 체험 데모</h2>
+    <p class="muted">각 데모는 실제로 작동합니다. 내 파일을 넣어봐도 브라우저 안에서만 처리되고 어디에도 전송되지 않습니다.</p>
+    <div class="grid c3" id="svcList"></div>
+  </section>
+
+  <section>
+    <h2>진행 방식</h2>
+    <div class="steps">
+      <div class="card"><h3>무료 상담</h3><p class="muted small">지금 하시는 작업이나 샘플 파일을 보내주세요. 가능 여부와 견적을 알려드립니다.</p></div>
+      <div class="card"><h3>시안 확인</h3><p class="muted small">고객님 데이터로 먼저 돌려본 결과를 보여드리고 원하시는 대로 맞춥니다.</p></div>
+      <div class="card"><h3>납품 & 설명서</h3><p class="muted small">버튼 하나로 쓰도록 세팅하고, 화면 캡처 사용설명서를 드립니다.</p></div>
+      <div class="card"><h3>사후 관리</h3><p class="muted small" id="aftercareShort"></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>운영 비용, 미리 투명하게 안내드립니다</h2>
+    <p class="muted" id="costNote"></p>
+    <div id="costTable"></div>
+  </section>
+
+  <section>
+    <h2>납품 후 <span id="acMonths"></span>개월, 무상 운영·유지보수</h2>
+    <div class="grid c2">
+      <div class="card"><h3>포함</h3><ul class="small" id="acIn"></ul></div>
+      <div class="card"><h3>별도</h3><ul class="small" id="acOut"></ul><p class="muted small" id="acAfter"></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>자주 묻는 질문</h2>
+    <div id="faq"></div>
+  </section>
+
+  <div class="cta-bar">
+    <div><h3 style="margin:0">반복 업무, 한 번만 말씀해주세요</h3><span class="muted small">상담·견적은 무료입니다.</span></div>
+    <a class="btn primary" data-kmong data-contact-text></a>
+  </div>
+</main>
+
+<footer><div class="wrap">© <span data-brand></span> · 데모 데이터는 모두 가상의 예시입니다.</div></footer>
+
+<script src="config.js"></script>
+<script src="assets/common.js"></script>
+<script>
+  const S = window.SITE;
+  document.getElementById("tagline").textContent = S.tagline;
+  document.getElementById("subTagline").textContent = S.subTagline;
+  document.getElementById("svcList").innerHTML = S.services.map((s) => `
+    <div class="card svc">
+      <h3>${U.esc(s.name)}</h3>
+      <div class="muted small">${U.esc(s.desc)}</div>
+      <div class="price">${U.esc(s.price)}</div>
+      <div class="small muted">💡 ${U.esc(s.runCost || "")}</div>
+      <ul class="small">${s.items.map((i) => `<li>${U.esc(i)}</li>`).join("")}</ul>
+      <div class="actions">
+        <a class="btn primary" href="${U.esc(s.demo)}">▶ 데모 체험</a>
+        <a class="btn" href="${U.esc(S.kmongUrl)}" target="_blank" rel="noopener">문의</a>
+      </div>
+    </div>`).join("");
+  const ac = S.aftercare;
+  document.getElementById("aftercareShort").textContent = `${ac.months}개월간 오류 수정·수시 관리 무상. 이후 월 유지보수 선택.`;
+  document.getElementById("acMonths").textContent = ac.months;
+  document.getElementById("acIn").innerHTML = ac.included.map((i) => `<li>${U.esc(i)}</li>`).join("");
+  document.getElementById("acOut").innerHTML = ac.excluded.map((i) => `<li>${U.esc(i)}</li>`).join("");
+  document.getElementById("acAfter").textContent = ac.after;
+  document.getElementById("costNote").textContent = S.costNote;
+  document.getElementById("costTable").innerHTML = U.table(["항목", "대략 비용", "비고"], S.costs);
+  const faq = [...S.faq, ["납품 후 문제가 생기면요?", `${ac.months}개월 동안 오류 수정과 수시 관리를 무상으로 해드립니다. ${ac.after}`]];
+  document.getElementById("faq").innerHTML = faq
+    .map(([q, a]) => `<details><summary>${U.esc(q)}</summary><p>${U.esc(a)}</p></details>`).join("");
+</script>
+</body>
+</html>

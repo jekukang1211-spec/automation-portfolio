@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>무인매장 QR 결제</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .stage { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .stage { grid-template-columns: 1fr; } }
+  .phone { border: 10px solid #1b1b19; border-radius: 34px; background: var(--surface); overflow: hidden; max-width: 360px; width: 100%; margin: 0 auto; min-height: 520px; }
+  .phone .bar { background: var(--accent); color: var(--accent-ink); padding: 16px; }
+  .phone .bar h3 { margin: 0; }
+  .phone .body { padding: 16px; }
+  .label-tag { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; letter-spacing: .04em; }
+  .plan { display: flex; justify-content: space-between; align-items: center; width: 100%; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; font: inherit; }
+  .plan.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+  .center { text-align: center; padding: 18px 0; }
+  .big { font-size: 40px; font-weight: 800; letter-spacing: -.02em; }
+  .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; margin: 20px auto; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .room { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--surface); }
+  .room.on { border-color: var(--ok); background: var(--ok-soft); }
+  .room.ending { border-color: var(--warn); background: var(--warn-soft); }
+  .room .n { font-weight: 800; }
+  .room .t { font-size: 22px; font-weight: 800; margin: 4px 0; font-variant-numeric: tabular-nums; }
+  .room .row { gap: 4px; }
+  .pay { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+  .pay:last-child { border-bottom: 0; }
+  .flash { animation: flash 1.2s ease; }
+  @keyframes flash { 0% { background: var(--accent-soft); } 100% { background: transparent; } }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="index.html" data-brand></a>
+  <a class="btn primary" data-kmong data-contact-text></a>
+</div></header>
+
+<main class="wrap">
+  <div class="demo-head">
+    <a href="index.html" class="small">← 전체 서비스</a>
+    <h1>무인매장: QR 찍고 결제하면 기기가 알아서 켜지고 꺼집니다</h1>
+    <p class="muted">코인노래방에서 <b>실제로 24시간 운영 중인 시스템</b>을 체험용으로 옮겨온 데모입니다. 왼쪽 손님 휴대폰에서 결제해보세요. 오른쪽 사장님 현황판이 바로 바뀝니다.</p>
+    <div class="notice">데모 결제는 가짜이며 돈이 나가지 않습니다. 빨리 보시도록 <b>시간이 60배 빠르게</b> 흐릅니다(1분 = 1초). 실제 납품 시 업종(코인노래방·스터디카페·셀프빨래방·당구장 등)과 기기에 맞춰 연결합니다.</div>
+  </div>
+
+  <section style="padding-top:16px">
+    <div class="stage">
+      <div>
+        <div class="label-tag">📱 손님 화면 (방 앞 QR을 찍으면 열림)</div>
+        <div class="phone">
+          <div class="bar"><h3>일잘러 코인노래방</h3><div class="small" id="roomLabel"></div></div>
+          <div class="body" id="cust"></div>
+        </div>
+      </div>
+      <div>
+        <div class="label-tag">🖥 사장님 현황판 (휴대폰으로도 봄)</div>
+        <div class="card">
+          <div class="kpis" id="kpis"></div>
+          <div class="row" style="justify-content:space-between;margin:18px 0 8px">
+            <h3 style="margin:0">방 상태</h3>
+            <label class="row small" style="margin:0;font-weight:500"><input type="checkbox" id="fast" checked style="width:auto"> 60배속</label>
+          </div>
+          <div class="rooms" id="rooms"></div>
+          <h3 style="margin-top:18px">오늘 결제 내역</h3>
+          <div id="pays"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta-bar">
+    <div><h3 style="margin:0">우리 매장도 무인으로 돌릴 수 있을까요?</h3><span class="muted small">지금 쓰시는 기기와 결제 방식을 알려주시면 가능 여부를 무료로 확인해드립니다.</span></div>
+    <a class="btn primary" data-kmong data-contact-text></a>
+  </div>
+</main>
+<footer><div class="wrap">© <span data-brand></span> · 매장명·결제 내역은 모두 가상의 예시입니다.</div></footer>
+
+<script src="config.js"></script>
+<script src="assets/common.js"></script>
+<script>
+// ---- 설정: 실제 납품 시 매장별로 바꾸는 값 ----
+const PLANS = [
+  { label: "30분", min: 30, price: 3000 },
+  { label: "1시간", min: 60, price: 5000 },
+  { label: "2시간", min: 120, price: 9000 },
+];
+const ROOM_COUNT = 6;
+const MY_ROOM = 3; // 손님 휴대폰이 찍은 QR의 방 번호
+
+// ---- 상태: 실제 시스템에서는 서버 DB + 기기 제어 모듈이 이 역할 ----
+// endAt 은 "가상 시계(분)" 기준. 60배속이면 실제 1초에 1분씩 흐른다.
+let clock = 0;
+const rooms = Array.from({ length: ROOM_COUNT }, (_, i) => ({ no: i + 1, endAt: 0 }));
+rooms[0].endAt = 42; rooms[4].endAt = 7; rooms[5].endAt = 95; // 이미 사용 중인 방들
+const pays = [
+  { t: "13:12", room: 1, plan: "1시간", price: 5000, method: "간편결제" },
+  { t: "14:40", room: 6, plan: "2시간", price: 9000, method: "신용카드" },
+  { t: "15:05", room: 5, plan: "30분", price: 3000, method: "간편결제" },
+];
+const left = (r) => Math.max(0, r.endAt - clock);
+const fmt = (m) => `${Math.floor(m / 60)}:${String(Math.floor(m % 60)).padStart(2, "0")}`;
+const nowStr = () => new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+
+// ---- 결제 처리 → 기기 ON (실제로는 PG 결제 승인 콜백 → 기기 제어 명령) ----
+function charge(roomNo, plan, method) {
+  const r = rooms[roomNo - 1];
+  r.endAt = Math.max(r.endAt, clock) + plan.min; // 사용 중이면 시간 연장
+  pays.unshift({ t: nowStr(), room: roomNo, plan: plan.label, price: plan.price, method, fresh: true });
+  renderAdmin();
+}
+
+// ---- 손님 화면 ----
+const c = { step: "choose", plan: 1, method: "간편결제" };
+roomLabel.textContent = `${MY_ROOM}번 방 · QR 결제`;
+function renderCust() {
+  const r = rooms[MY_ROOM - 1];
+  if (c.step === "paying") {
+    cust.innerHTML = `<div class="center"><div class="spinner"></div><b>결제 승인 중…</b><p class="muted small">승인되면 ${MY_ROOM}번 방 기기가 자동으로 켜져요</p></div>`;
+    return;
+  }
+  if (c.step === "done" && left(r) > 0) {
+    cust.innerHTML = `<div class="center">
+      <div style="font-size:36px">🎤</div><b>${MY_ROOM}번 방이 켜졌어요!</b>
+      <p class="muted small" style="margin:6px 0 2px">남은 시간</p>
+      <div class="big" id="myLeft">${fmt(left(r))}</div>
+      <p class="muted small">끝나기 5분 전에 알려드려요. 이 화면에서 바로 연장할 수 있어요.</p>
+      <button class="btn primary" style="width:100%" id="extend">시간 연장하기</button></div>`;
+    extend.onclick = () => { c.step = "choose"; renderCust(); };
+    return;
+  }
+  if (c.step === "done") c.step = "choose";
+  const using = left(r) > 0;
+  cust.innerHTML = `
+    ${using ? `<div class="notice" style="margin-bottom:12px">사용 중 · 남은 시간 ${fmt(left(r))} → 결제하면 연장돼요</div>` : ""}
+    <label style="margin-top:0">이용 시간</label>
+    ${PLANS.map((p, i) => `<button class="plan ${i === c.plan ? "on" : ""}" data-p="${i}"><span>${p.label}</span><span>${U.won(p.price)}</span></button>`).join("")}
+    <label>결제 수단</label>
+    <div class="chips">${["간편결제", "신용카드"].map((m) => `<button class="chip ${m === c.method ? "on" : ""}" data-m="${m}">${m}</button>`).join("")}</div>
+    <button class="btn primary" style="width:100%;margin-top:16px" id="payBtn">${U.won(PLANS[c.plan].price)} 결제하기</button>
+    <p class="muted small" style="text-align:center">앱 설치 · 회원가입 없이 결제</p>`;
+  cust.querySelectorAll("[data-p]").forEach((b) => (b.onclick = () => { c.plan = +b.dataset.p; renderCust(); }));
+  cust.querySelectorAll("[data-m]").forEach((b) => (b.onclick = () => { c.method = b.dataset.m; renderCust(); }));
+  payBtn.onclick = () => {
+    c.step = "paying"; renderCust();
+    setTimeout(() => { charge(MY_ROOM, PLANS[c.plan], c.method); c.step = "done"; renderCust(); }, 1200);
+  };
+}
+
+// ---- 사장님 현황판 ----
+function renderAdmin() {
+  const total = pays.reduce((s, p) => s + p.price, 0);
+  const busy = rooms.filter((r) => left(r) > 0).length;
+  kpis.innerHTML = [
+    ["오늘 매출", U.won(total)], ["결제 건수", pays.length + "건"], ["사용 중인 방", `${busy} / ${ROOM_COUNT}`],
+  ].map(([l, v]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+  renderRooms();
+  renderPays();
+}
+function renderRooms() {
+  document.getElementById("rooms").innerHTML = rooms.map((r) => {
+    const m = left(r), on = m > 0, ending = on && m <= 5;
+    return `<div class="room ${ending ? "ending" : on ? "on" : ""}">
+      <div class="row" style="justify-content:space-between"><span class="n">${r.no}번 방</span><span class="badge ${on ? (ending ? "warn" : "ok") : ""}">${on ? (ending ? "곧 종료" : "사용 중") : "빈 방"}</span></div>
+      <div class="t">${on ? fmt(m) : "–"}</div>
+      <div class="small muted">${on ? "기기 ON" : "기기 OFF"}</div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn small" data-add="${r.no}">+10분</button>
+        ${on ? `<button class="btn small" data-off="${r.no}">종료</button>` : ""}
+      </div></div>`;
+  }).join("");
+  document.querySelectorAll("[data-add]").forEach((b) => (b.onclick = () => { const r = rooms[b.dataset.add - 1]; r.endAt = Math.max(r.endAt, clock) + 10; renderAdmin(); renderCust(); }));
+  document.querySelectorAll("[data-off]").forEach((b) => (b.onclick = () => { rooms[b.dataset.off - 1].endAt = clock; renderAdmin(); renderCust(); }));
+}
+function renderPays() {
+  document.getElementById("pays").innerHTML = pays.slice(0, 8).map((p) =>
+    `<div class="pay ${p.fresh ? "flash" : ""}"><span>${p.t} · ${p.room}번 방 · ${p.plan} · <span class="muted">${p.method}</span></span><b>${U.won(p.price)}</b></div>`).join("");
+  pays.forEach((p) => delete p.fresh);
+}
+
+// ---- 시계: 1초마다 남은 시간 갱신, 0이 되면 기기 OFF ----
+setInterval(() => {
+  clock += fast.checked ? 1 : 1 / 60;
+  renderRooms();
+  const busy = rooms.filter((r) => left(r) > 0).length;
+  const k = kpis.querySelectorAll(".kpi .v"); if (k[2]) k[2].textContent = `${busy} / ${ROOM_COUNT}`;
+  const my = document.getElementById("myLeft");
+  if (my) { const m = left(rooms[MY_ROOM - 1]); if (m > 0) my.textContent = fmt(m); else renderCust(); }
+}, 1000);
+
+renderCust(); renderAdmin();
+</script>
+</body>
+</html>

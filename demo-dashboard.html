@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>경쟁사 가격 모니터링</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  tbody tr { cursor: pointer; }
+  tbody tr.sel td { background: var(--accent-soft); }
+  .chart-box { position: relative; height: 300px; }
+  .log { background: #121211; color: #cfe8d6; font-family: Consolas, "D2Coding", monospace; font-size: 12.5px; border-radius: 10px; padding: 12px; height: 180px; overflow-y: auto; white-space: pre-wrap; }
+  .up { color: var(--warn); font-weight: 700; }
+  .down { color: var(--ok); font-weight: 700; }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="index.html" data-brand></a>
+  <a class="btn primary" data-kmong data-contact-text></a>
+</div></header>
+
+<main class="wrap">
+  <div class="demo-head">
+    <a href="index.html" class="small">← 전체 서비스</a>
+    <h1>경쟁사 가격, 매일 아침 자동으로 모아드립니다</h1>
+    <p class="muted">지정한 쇼핑몰에서 매일 정해진 시간에 가격을 수집해 <b>내 가격보다 싼 곳</b>을 바로 보여주고 엑셀로 쌓아둡니다.</p>
+    <div class="notice">이 화면은 <b>가상의 샘플 데이터</b>로 만든 결과 예시입니다. 실제 납품 시에는 고객님이 지정한 사이트·상품을 매일 자동 수집합니다(사이트 이용약관 범위 안에서).</div>
+  </div>
+
+  <section style="padding-top:16px">
+    <div class="kpis" id="kpis"></div>
+
+    <div class="row" style="justify-content:space-between;margin:22px 0 10px">
+      <h2 style="margin:0">오늘 가격 비교</h2>
+      <div class="row">
+        <button class="btn" id="runBtn">↻ 지금 수집 실행 (시뮬레이션)</button>
+        <button class="btn primary" id="dl">⬇ 전체 데이터 엑셀</button>
+      </div>
+    </div>
+    <p class="muted small">행을 누르면 아래에 14일 가격 추이가 나옵니다.</p>
+    <div id="tbl"></div>
+
+    <div class="grid c2" style="margin-top:20px">
+      <div class="card">
+        <h3 id="chartTitle"></h3>
+        <div class="chart-box"><canvas id="chart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>수집 로그</h3>
+        <div class="log" id="log"></div>
+        <p class="muted small" style="margin-bottom:0">실제로는 PC나 서버에서 매일 아침 자동 실행되고, 가격이 내려가면 카톡/메일로 알려줄 수도 있습니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta-bar">
+    <div><h3 style="margin:0">내 상품도 모니터링할 수 있을까요?</h3><span class="muted small">상품 링크 목록만 주시면 가능 여부를 무료로 확인해드립니다.</span></div>
+    <a class="btn primary" data-kmong data-contact-text></a>
+  </div>
+</main>
+<footer><div class="wrap">© <span data-brand></span> · 상품명·쇼핑몰명·가격은 모두 가상의 예시입니다.</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="config.js"></script>
+<script src="assets/common.js"></script>
+<script>
+// ---- 샘플 데이터: 실제 납품물에서는 이 부분이 "수집 모듈"의 결과(DB/엑셀)로 바뀐다 ----
+const MALLS = ["A마켓", "B쇼핑", "C스토어"];
+const PRODUCTS = [
+  ["무선 미니 선풍기", 19900], ["접이식 노트북 거치대", 24900], ["보조배터리 20000mAh", 32900],
+  ["실리콘 주방 집게 3종", 12900], ["차량용 핸드폰 거치대", 15900], ["LED 무드등", 21900],
+];
+const DAYS = 14;
+const rnd = U.rng(77);
+const dates = Array.from({ length: DAYS }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (DAYS - 1 - i)); return U.ymd(d); });
+const data = PRODUCTS.map(([name, mine]) => ({
+  name, mine,
+  // 몰마다 기준가를 두고 매일 조금씩 출렁이게(평균으로 돌아오는 랜덤워크)
+  malls: MALLS.map(() => {
+    const base = mine * (0.96 + rnd() * 0.16);
+    let p = base;
+    return dates.map(() => (p = p * 0.7 + base * 0.3 + mine * (rnd() - 0.5) * 0.06, Math.round(p / 100) * 100));
+  }),
+}));
+
+// ---- 가공: 오늘 최저가, 어제 대비 변동 ----
+function analyze(p) {
+  const today = p.malls.map((s) => s[DAYS - 1]);
+  const yest = p.malls.map((s) => s[DAYS - 2]);
+  const min = Math.min(...today);
+  const mi = today.indexOf(min);
+  return { min, minMall: MALLS[mi], diff: p.mine - min, delta: today[mi] - yest[mi] };
+}
+
+let sel = 0, chart;
+function render() {
+  const rows = data.map(analyze);
+  const pricier = rows.filter((r) => r.diff > 0).length;
+  kpis.innerHTML = [
+    ["모니터링 상품", PRODUCTS.length + "개"], ["비교 쇼핑몰", MALLS.length + "곳"],
+    ["누적 수집 데이터", U.num(PRODUCTS.length * MALLS.length * DAYS) + "건"],
+    ["내가 더 비싼 상품", `<span class="${pricier ? "up" : "down"}">${pricier}개</span>`],
+  ].map(([l, v]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+
+  const head = ["상품", "내 가격", ...MALLS, "오늘 최저가", "차이", "상태"];
+  tbl.innerHTML = `<div class="table-wrap"><table><thead><tr>${head.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${
+    data.map((p, i) => {
+      const r = rows[i];
+      const status = r.diff > 0 ? `<span class="badge warn">${U.won(r.diff)} 비쌈</span>` : `<span class="badge ok">최저가</span>`;
+      return `<tr class="${i === sel ? "sel" : ""}" data-i="${i}"><td><b>${U.esc(p.name)}</b></td><td>${U.won(p.mine)}</td>${
+        p.malls.map((s) => `<td>${U.won(s[DAYS - 1])}</td>`).join("")
+      }<td>${U.won(r.min)} <span class="muted small">${r.minMall}</span></td><td class="${r.diff > 0 ? "up" : "down"}">${r.diff > 0 ? "+" : ""}${U.num(r.diff)}</td><td>${status}</td></tr>`;
+    }).join("")
+  }</tbody></table></div>`;
+  tbl.querySelectorAll("tr[data-i]").forEach((tr) => (tr.onclick = () => { sel = +tr.dataset.i; render(); }));
+  drawChart();
+}
+
+function drawChart() {
+  const p = data[sel];
+  chartTitle.textContent = `${p.name} · 최근 ${DAYS}일 가격 추이`;
+  const css = getComputedStyle(document.documentElement);
+  const text = css.getPropertyValue("--muted").trim(), grid = css.getPropertyValue("--border").trim();
+  const colors = ["#2a62e0", "#c2410c", "#1d7f53"];
+  const ds = p.malls.map((s, i) => ({ label: MALLS[i], data: s, borderColor: colors[i], backgroundColor: colors[i], tension: .25, pointRadius: 2, borderWidth: 2 }));
+  ds.push({ label: "내 가격", data: dates.map(() => p.mine), borderColor: text, borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5 });
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById("chart"), {
+    type: "line",
+    data: { labels: dates.map((d) => d.slice(5)), datasets: ds },
+    options: {
+      maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+      plugins: { legend: { labels: { color: text, boxWidth: 12 } }, tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${U.won(c.parsed.y)}` } } },
+      scales: {
+        x: { ticks: { color: text }, grid: { color: grid } },
+        y: { ticks: { color: text, callback: (v) => U.num(v) }, grid: { color: grid } },
+      },
+    },
+  });
+}
+
+// ---- 수집 실행 시뮬레이션: 실제 수집기가 콘솔에 남기는 로그 모양을 그대로 보여준다 ----
+const stamp = () => new Date().toLocaleTimeString("ko-KR", { hour12: false });
+const logLine = (s) => { log.textContent += `[${stamp()}] ${s}\n`; log.scrollTop = log.scrollHeight; };
+logLine("매일 07:00 자동 실행 대기 중 (작업 스케줄러 등록됨)");
+logLine(`최근 수집 완료: ${dates[DAYS - 1]} 07:00 · ${PRODUCTS.length * MALLS.length}건 저장`);
+
+runBtn.onclick = async () => {
+  runBtn.disabled = true;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  logLine("수집 시작");
+  let n = 0;
+  for (const p of data) for (const [mi, m] of MALLS.entries()) {
+    await wait(70);
+    n++;
+    logLine(`  ${m} · ${p.name} → ${U.won(p.malls[mi][DAYS - 1])} (OK)`);
+  }
+  logLine(`완료: ${n}건 수집 · 중복 0건 · 엑셀/DB 저장 완료`);
+  const alerts = data.filter((p) => analyze(p).diff > 0).map((p) => p.name);
+  if (alerts.length) logLine(`⚠ 알림 대상 ${alerts.length}개: ${alerts.join(", ")}`);
+  runBtn.disabled = false;
+};
+
+dl.onclick = () => {
+  const raw = [];
+  data.forEach((p) => p.malls.forEach((s, mi) => s.forEach((price, di) => raw.push({ 수집일: dates[di], 상품: p.name, 쇼핑몰: MALLS[mi], 가격: price, 내가격: p.mine }))));
+  const today = data.map((p) => { const r = analyze(p); return { 상품: p.name, 내가격: p.mine, 오늘최저가: r.min, 최저가몰: r.minMall, 차이: r.diff }; });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(today), "오늘 비교");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(raw), "전체 수집 이력");
+  XLSX.writeFile(wb, `가격모니터링_${U.ymd().replace(/-/g, "")}.xlsx`);
+};
+
+render();
+</script>
+</body>
+</html>
