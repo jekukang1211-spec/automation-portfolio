@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>홈페이지 제작 샘플</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .viewer { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; overflow: hidden; }
+  .stage { margin: 0 auto; transform-origin: top left; }
+  .frame { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.12); }
+  .frame.phone { border: 10px solid #1b1b19; border-radius: 30px; }
+  iframe { display: block; border: 0; background: #fff; }
+  .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 18px; }
+  .checks div { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; font-size: 14px; }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="index.html" data-brand></a>
+  <a class="btn primary" data-kmong data-contact-text></a>
+</div></header>
+
+<main class="wrap">
+  <div class="demo-head">
+    <a href="index.html" class="small">← 전체 서비스</a>
+    <h1>가게·회사 홈페이지, 휴대폰에서도 깔끔하게</h1>
+    <p class="muted">아래는 실제로 작동하는 샘플 홈페이지입니다. <b>업종</b>과 <b>화면 크기</b>를 바꿔보세요. 메뉴, 문의 접수, 오시는 길까지 들어 있습니다.</p>
+  </div>
+
+  <section style="padding-top:12px">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <div class="chips" id="types"></div>
+      <div class="chips" id="sizes"></div>
+    </div>
+    <div class="viewer" id="viewer"><div class="stage" id="stage"><div class="frame" id="frame"><iframe id="ifr" title="샘플 홈페이지"></iframe></div></div></div>
+    <p class="small muted" style="margin-top:8px"><a id="openNew" target="_blank" rel="noopener">↗ 새 창에서 크게 보기</a> · 샘플의 상호·주소는 가상입니다.</p>
+
+    <div class="checks">
+      <div>📱 <b>휴대폰·PC 자동 맞춤</b><br><span class="muted">어떤 화면에서도 깨지지 않게</span></div>
+      <div>💬 <b>문의·예약 접수</b><br><span class="muted">접수되면 문자·메일로 바로 알림</span></div>
+      <div>🔎 <b>네이버·구글 검색 등록</b><br><span class="muted">상호 검색 시 노출되도록 세팅</span></div>
+      <div>✏️ <b>직접 수정 가능</b><br><span class="muted">메뉴·가격은 사장님이 쉽게 고치도록</span></div>
+    </div>
+  </section>
+
+  <div class="cta-bar">
+    <div><h3 style="margin:0">우리 가게 홈페이지도 이렇게</h3><span class="muted small">상호·사진·원하는 내용만 주시면 시안부터 보여드립니다. 운영비는 호스팅 무료~월 1만원 수준.</span></div>
+    <a class="btn primary" data-kmong data-contact-text></a>
+  </div>
+</main>
+<footer><div class="wrap">© <span data-brand></span></div></footer>
+
+<script src="config.js"></script>
+<script src="assets/common.js"></script>
+<script>
+const TYPES = [["cafe", "☕ 카페·음식점"], ["biz", "🏢 회사·시공업체"]];
+const SIZES = [["pc", "🖥 PC", 1200, 760], ["tablet", "📟 태블릿", 768, 900], ["phone", "📱 휴대폰", 375, 720]];
+const v = { type: "cafe", size: "pc" };
+function render() {
+  const [, , w, h] = SIZES.find((s) => s[0] === v.size);
+  const url = `samples/site.html?type=${v.type}`;
+  if (ifr.getAttribute("src") !== url) ifr.src = url;
+  openNew.href = url;
+  ifr.style.width = w + "px"; ifr.style.height = h + "px";
+  frame.className = "frame" + (v.size === "phone" ? " phone" : "");
+  // 화면보다 넓으면 비율 그대로 축소해서 보여준다
+  const outer = w + (v.size === "phone" ? 20 : 0);
+  const scale = Math.min(1, (viewer.clientWidth - 32) / outer);
+  stage.style.width = outer + "px";
+  stage.style.transform = `scale(${scale})`;
+  stage.style.marginLeft = Math.max(0, (viewer.clientWidth - 32 - outer * scale) / 2) + "px";
+  viewer.style.height = (h + (v.size === "phone" ? 20 : 0)) * scale + 32 + "px";
+  types.innerHTML = TYPES.map(([k, l]) => `<button class="chip ${v.type === k ? "on" : ""}" data-type="${k}">${l}</button>`).join("");
+  sizes.innerHTML = SIZES.map(([k, l]) => `<button class="chip ${v.size === k ? "on" : ""}" data-size="${k}">${l}</button>`).join("");
+  types.querySelectorAll("[data-type]").forEach((b) => (b.onclick = () => { v.type = b.dataset.type; render(); }));
+  sizes.querySelectorAll("[data-size]").forEach((b) => (b.onclick = () => { v.size = b.dataset.size; render(); }));
+}
+addEventListener("resize", render);
+render();
+</script>
+</body>
+</html>

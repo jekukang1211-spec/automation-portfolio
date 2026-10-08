@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>엑셀 합치기 자동화</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .drop { border: 2px dashed var(--border); border-radius: var(--radius); padding: 28px 16px; text-align: center; background: var(--surface); cursor: pointer; }
+  .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .result { display: none; }
+  .result.show { display: block; }
+  .files { margin-top: 10px; font-size: 13px; }
+  .files span { display: inline-block; background: var(--surface-2); border-radius: 6px; padding: 3px 8px; margin: 3px 4px 0 0; }
+  .speed b { color: var(--ok); }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="index.html" data-brand></a>
+  <a class="btn primary" data-kmong data-contact-text></a>
+</div></header>
+
+<main class="wrap">
+  <div class="demo-head">
+    <a href="index.html" class="small">← 전체 서비스</a>
+    <h1>엑셀 파일 여러 개, 한 번에 합치고 자동 집계</h1>
+    <p class="muted">지점별·담당자별·월별로 흩어진 엑셀을 넣으면 <b>하나로 합치고, 중복을 지우고, 집계표까지</b> 자동으로 만들어줍니다. 매주 하던 복사·붙여넣기가 사라집니다.</p>
+    <div class="notice">🔒 파일은 이 브라우저 안에서만 처리되며 어디로도 전송되지 않습니다. 실제 납품 시에는 고객님 엑셀 양식과 원하는 보고서 모양에 맞춰 만들어 드립니다.</div>
+  </div>
+
+  <section style="padding-top:16px">
+    <div class="drop" id="drop">
+      <h3>📂 엑셀 파일 여러 개를 한꺼번에 끌어오거나 클릭</h3>
+      <p class="muted small">.xlsx / .xls / .csv · 첫 줄 제목(열 이름)이 같으면 자동으로 맞춰 합칩니다 · 파일 이름이 "출처" 열로 들어갑니다</p>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv" multiple hidden>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" id="sampleRun">샘플 파일 3개로 바로 해보기</button>
+      <button class="btn" id="sampleDl">샘플 파일 받기</button>
+    </div>
+  </section>
+
+  <section class="result" id="result" style="padding-top:0">
+    <p class="speed" id="speed"></p>
+    <div class="files" id="fileList"></div>
+    <div class="kpis" id="kpis" style="margin-top:14px"></div>
+    <div class="row" style="margin:18px 0 10px">
+      <div class="chips" id="tabs"></div>
+      <span style="flex:1"></span>
+      <label class="row small" style="margin:0;font-weight:500">집계 기준
+        <select id="groupBy" style="width:auto"></select></label>
+      <button class="btn primary" id="dl">⬇ 결과 엑셀 다운로드</button>
+    </div>
+    <div id="tabBody"></div>
+  </section>
+
+  <div class="cta-bar">
+    <div><h3 style="margin:0">우리 회사 엑셀도 될까요?</h3><span class="muted small">매주·매달 반복하는 엑셀 작업이 있다면 샘플 파일만 보내주세요. 가능 여부를 무료로 알려드립니다.</span></div>
+    <a class="btn primary" data-kmong data-contact-text></a>
+  </div>
+</main>
+<footer><div class="wrap">© <span data-brand></span> · 샘플 데이터는 모두 가상입니다.</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<script src="assets/common.js"></script>
+<script>
+// ---- 1. 읽기: 파일마다 첫 시트를 객체 배열로. 열 이름의 공백 차이는 무시 ----
+const clean = (s) => String(s ?? "").replace(/\s+/g, "").trim();
+function sheetToRows(wb, source) {
+  const aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "" });
+  const hi = aoa.findIndex((r) => r.filter((c) => String(c).trim()).length >= 2); // 첫 번째 "제목 줄"
+  if (hi < 0) return { headers: [], rows: [] };
+  const headers = aoa[hi].map(clean);
+  const rows = aoa.slice(hi + 1).filter((r) => r.some((c) => String(c).trim() !== ""))
+    .map((r) => Object.fromEntries([["출처", source], ...headers.map((h, i) => [h || `열${i + 1}`, r[i]])]));
+  return { headers, rows };
+}
+
+// ---- 2. 가공: 합치기 → 중복 제거 → 숫자 열 자동 감지 → 그룹 집계 ----
+let state = null, tab = "merged";
+function build(files) {
+  const t0 = performance.now();
+  const headerSet = ["출처"];
+  let all = [];
+  for (const f of files) {
+    f.headers.forEach((h) => h && !headerSet.includes(h) && headerSet.push(h));
+    all = all.concat(f.rows);
+  }
+  // 출처를 뺀 나머지 값이 완전히 같으면 중복으로 본다 (같은 내용을 두 파일에 넣은 경우)
+  const seen = new Set(); const merged = [];
+  for (const r of all) {
+    const key = headerSet.slice(1).map((h) => String(r[h] ?? "")).join("|");
+    if (seen.has(key)) continue;
+    seen.add(key); merged.push(r);
+  }
+  const isNum = (h) => merged.filter((r) => r[h] !== "" && r[h] != null).every((r) => !isNaN(Number(String(r[h]).replace(/[,원\s]/g, ""))));
+  // 단가·비율처럼 "더하면 의미 없는" 숫자 열은 합계 대상에서 뺀다
+  const numCols = headerSet.filter((h) => h !== "출처" && merged.some((r) => r[h] !== "") && isNum(h) && !/단가|가격|율|률|price|rate/i.test(h));
+  const textCols = headerSet.filter((h) => !numCols.includes(h) && !isNum(h));
+  state = { files, headers: headerSet, merged, dup: all.length - merged.length, numCols, textCols, ms: performance.now() - t0 };
+  const def = textCols.includes("품목") ? "품목" : textCols[0];
+  groupBy.innerHTML = textCols.map((h) => `<option ${h === def ? "selected" : ""}>${U.esc(h)}</option>`).join("");
+  render();
+}
+const num = (v) => Number(String(v ?? "").replace(/[,원\s]/g, "")) || 0;
+
+function summary() {
+  const g = groupBy.value, m = new Map();
+  for (const r of state.merged) {
+    const k = String(r[g] ?? "(빈칸)");
+    const o = m.get(k) || { 건수: 0, ...Object.fromEntries(state.numCols.map((c) => [c, 0])) };
+    o.건수++; state.numCols.forEach((c) => (o[c] += num(r[c])));
+    m.set(k, o);
+  }
+  const last = state.numCols[state.numCols.length - 1];
+  return [...m.entries()].map(([k, v]) => ({ [g]: k, ...v })).sort((a, b) => (b[last] || 0) - (a[last] || 0));
+}
+
+function render() {
+  const s = state;
+  speed.innerHTML = `✅ 파일 ${s.files.length}개 · ${U.num(s.merged.length + s.dup)}행 처리 완료 · 걸린 시간 <b>${s.ms < 10 ? "0.01초 미만" : (s.ms / 1000).toFixed(2) + "초"}</b> <span class="muted small">(손으로 복사·붙여넣기 하면 약 ${Math.max(10, s.files.length * 10)}분)</span>`;
+  fileList.innerHTML = s.files.map((f) => `<span>📄 ${U.esc(f.name)} · ${f.rows.length}행</span>`).join("");
+  const last = s.numCols[s.numCols.length - 1];
+  kpis.innerHTML = [
+    ["합친 파일", s.files.length + "개"], ["합친 행", U.num(s.merged.length) + "행"],
+    ["지운 중복", U.num(s.dup) + "행"],
+    ...(last ? [[`${last} 합계`, U.num(s.merged.reduce((a, r) => a + num(r[last]), 0))]] : []),
+  ].map(([l, v]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${U.esc(l)}</div></div>`).join("");
+  tabs.innerHTML = [["merged", "합친 데이터"], ["sum", "자동 집계표"]]
+    .map(([k, l]) => `<button class="chip ${tab === k ? "on" : ""}" data-t="${k}">${l}</button>`).join("");
+  tabs.querySelectorAll("[data-t]").forEach((b) => (b.onclick = () => { tab = b.dataset.t; render(); }));
+  if (tab === "merged") tabBody.innerHTML = U.table(s.headers, s.merged.map((r) => s.headers.map((h) => r[h])));
+  else {
+    const rows = summary(); const hs = Object.keys(rows[0] || {});
+    tabBody.innerHTML = U.table(hs, rows.map((r) => hs.map((h) => (typeof r[h] === "number" ? U.num(r[h]) : r[h]))));
+  }
+  result.classList.add("show");
+}
+groupBy.onchange = () => { tab = "sum"; render(); };
+
+dl.onclick = () => {
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(state.merged, { header: state.headers }), "합친데이터");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary()), `${groupBy.value}별집계`.slice(0, 31));
+  XLSX.writeFile(wb, `엑셀합치기_${U.ymd().replace(/-/g, "")}.xlsx`);
+};
+
+// ---- 파일 입력 ----
+function readFiles(list) {
+  const arr = [...list];
+  if (!arr.length) return;
+  Promise.all(arr.map((f) => new Promise((ok, fail) => {
+    const r = new FileReader();
+    r.onload = () => { try { ok({ name: f.name, ...sheetToRows(XLSX.read(r.result, { type: "array" }), f.name.replace(/\.[^.]+$/, "")) }); } catch (e) { fail(f.name); } };
+    r.readAsArrayBuffer(f);
+  }))).then((files) => { build(files); result.scrollIntoView({ behavior: "smooth" }); })
+    .catch((n) => alert(`${n} 파일을 읽지 못했습니다. 비밀번호가 걸려 있다면 해제 후 넣어주세요.`));
+}
+drop.onclick = () => file.click();
+file.onchange = () => readFiles(file.files);
+drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = () => drop.classList.remove("over");
+drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); readFiles(e.dataTransfer.files); };
+
+// ---- 샘플: 지점 3곳의 월 매출 파일 (가상) ----
+function sampleFiles() {
+  const rnd = U.rng(1008);
+  const items = [["아메리카노", 3000], ["카페라떼", 3500], ["바닐라라떼", 4000], ["샌드위치", 5500], ["치즈케이크", 6000]];
+  const staff = ["김민수", "이지영", "박서준", "최하은", "정도윤"];
+  return ["강남점", "홍대점", "부산점"].map((store, si) => {
+    const rows = [["날짜", "품목", "수량", "단가", "금액", "담당자"]];
+    for (let d = 1; d <= 20; d++) {
+      const [name, price] = items[Math.floor(rnd() * items.length)];
+      const q = 5 + Math.floor(rnd() * 40);
+      rows.push([`2026-09-${String(d).padStart(2, "0")}`, name, q, price, q * price, staff[(d + si) % staff.length]]);
+    }
+    if (si === 1) rows.push(rows[3].slice()); // 홍대점에 실수로 들어간 중복 1줄
+    return { name: `9월매출_${store}.xlsx`, aoa: rows };
+  });
+}
+sampleRun.onclick = () => {
+  build(sampleFiles().map((f) => {
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(f.aoa), "Sheet1");
+    return { name: f.name, ...sheetToRows(wb, f.name.replace(/\.[^.]+$/, "")) };
+  }));
+  if (location.hash !== "#sample") result.scrollIntoView({ behavior: "smooth" });
+};
+sampleDl.onclick = () => sampleFiles().forEach((f) => {
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(f.aoa), "Sheet1");
+  XLSX.writeFile(wb, f.name);
+});
+if (location.hash === "#sample") sampleRun.onclick();
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>샘플 홈페이지</title>
+<!-- 홈페이지 제작 데모용 샘플 사이트. ?type=cafe | biz 로 업종 전환. 모든 상호·주소는 가상 -->
+<style>
+  :root { --main: #6b4f3a; --main-ink: #fff; --bg: #fbf8f4; --text: #2a2420; --muted: #7a6f66; --card: #fff; --line: #ece4da; }
+  body.biz { --main: #1f4fd1; --bg: #f6f8fc; --text: #16203a; --muted: #5d6680; --line: #e1e6f0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Pretendard","Malgun Gothic",system-ui,sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; word-break: keep-all; }
+  a { color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  nav { position: sticky; top: 0; background: rgba(255,255,255,.92); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); z-index: 5; }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  nav b { font-size: 19px; color: var(--main); }
+  nav .links { display: flex; gap: 22px; font-size: 15px; }
+  nav .links a { text-decoration: none; }
+  .menu-btn { display: none; background: none; border: 0; font-size: 24px; cursor: pointer; }
+  @media (max-width: 700px) { nav .links { display: none; } nav .links.open { display: flex; position: absolute; top: 60px; left: 0; right: 0; flex-direction: column; background: #fff; padding: 16px 20px; border-bottom: 1px solid var(--line); } .menu-btn { display: block; } }
+  .hero { padding: 90px 0 80px; background: linear-gradient(135deg, var(--main), color-mix(in srgb, var(--main) 60%, #000)); color: #fff; }
+  .hero h1 { font-size: clamp(30px, 6vw, 52px); margin: 0 0 14px; line-height: 1.2; letter-spacing: -1px; }
+  .hero p { font-size: clamp(16px, 2.5vw, 20px); opacity: .9; margin: 0 0 28px; max-width: 560px; }
+  .btn { display: inline-block; background: #fff; color: var(--main); padding: 13px 26px; border-radius: 999px; font-weight: 800; text-decoration: none; border: 0; font: inherit; font-weight: 800; cursor: pointer; }
+  section { padding: 70px 0; }
+  h2 { font-size: clamp(24px, 4vw, 34px); margin: 0 0 10px; letter-spacing: -.5px; }
+  .sub { color: var(--muted); margin: 0 0 30px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+  .card .ico { font-size: 34px; }
+  .card h3 { margin: 10px 0 6px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .card .price { margin-top: 10px; font-weight: 800; color: var(--main); }
+  .info { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 700px) { .info { grid-template-columns: 1fr; } }
+  .map { background: repeating-linear-gradient(45deg, var(--line) 0 10px, transparent 10px 20px); border-radius: 16px; min-height: 220px; display: grid; place-items: center; color: var(--muted); border: 1px solid var(--line); }
+  form { display: grid; gap: 10px; }
+  input, textarea, select { font: inherit; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; width: 100%; }
+  form .btn { background: var(--main); color: var(--main-ink); }
+  .done { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; text-align: center; }
+  footer { background: var(--text); color: #cfc8c0; padding: 30px 0; font-size: 13px; }
+  .float { position: fixed; right: 18px; bottom: 18px; background: var(--main); color: #fff; border-radius: 999px; padding: 12px 18px; font-weight: 800; box-shadow: 0 6px 20px rgba(0,0,0,.2); text-decoration: none; }
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <b id="name"></b>
+  <button class="menu-btn" onclick="document.querySelector('.links').classList.toggle('open')" aria-label="메뉴">☰</button>
+  <div class="links"><a href="#about">소개</a><a href="#items" id="navItems"></a><a href="#visit">오시는 길</a><a href="#contact" id="navContact"></a></div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <h1 id="h1"></h1><p id="lead"></p><a class="btn" href="#contact" id="cta"></a>
+</div></header>
+
+<section id="about"><div class="wrap">
+  <h2 id="aboutT"></h2><p class="sub" id="aboutS"></p>
+  <div class="grid" id="points"></div>
+</div></section>
+
+<section id="items" style="background:var(--card)"><div class="wrap">
+  <h2 id="itemsT"></h2><p class="sub" id="itemsS"></p>
+  <div class="grid" id="itemList"></div>
+</div></section>
+
+<section id="visit"><div class="wrap info">
+  <div><h2>오시는 길</h2><p class="sub" id="addr"></p><div id="hours"></div></div>
+  <div class="map">🗺 지도 영역 (실제 제작 시 네이버·카카오 지도 연결)</div>
+</div></section>
+
+<section id="contact" style="background:var(--card)"><div class="wrap" style="max-width:640px">
+  <h2 id="formT"></h2><p class="sub">남겨주시면 영업시간 안에 답변드립니다.</p>
+  <form id="f">
+    <input required placeholder="이름">
+    <input required placeholder="휴대폰 번호" inputmode="tel">
+    <select id="formSel"></select>
+    <textarea rows="4" placeholder="문의 내용"></textarea>
+    <button class="btn" type="submit">보내기</button>
+  </form>
+  <div class="done" id="done"><div style="font-size:36px">✅</div><h3>접수되었습니다</h3><p class="sub" style="margin:0">데모라서 실제로 전송되지는 않아요. 실제 홈페이지에서는 사장님 휴대폰 문자·메일로 바로 알림이 갑니다.</p></div>
+</div></section>
+
+<footer><div class="wrap" id="foot"></div></footer>
+<a class="float" href="#contact" id="float"></a>
+
+<script>
+const DATA = {
+  cafe: {
+    name: "브루잉하우스", h1: "동네에서 제일 맛있는\n한 잔을 내립니다", lead: "매일 아침 직접 로스팅한 원두와 매장에서 굽는 디저트. 단체 주문·케이터링도 받아요.",
+    cta: "단체 주문 문의", navItems: "메뉴", navContact: "문의",
+    aboutT: "브루잉하우스는요", aboutS: "작지만 정성껏, 오래 머물고 싶은 공간을 만듭니다.",
+    points: [["☕", "매일 로스팅", "그날 볶은 원두만 사용해요"], ["🍰", "수제 디저트", "매장에서 직접 굽습니다"], ["🪴", "편안한 공간", "콘센트 좌석·단체석 완비"]],
+    itemsT: "대표 메뉴", itemsS: "가장 많이 찾으시는 메뉴예요.",
+    items: [["☕", "핸드드립 커피", "산미 있는 싱글오리진", "5,000원"], ["🥛", "바닐라 라떼", "직접 만든 바닐라 시럽", "5,500원"], ["🍰", "바스크 치즈케이크", "매일 한정 수량", "6,500원"], ["🥪", "브런치 플레이트", "11시~15시", "12,000원"]],
+    addr: "서울시 ○○구 ○○로 123, 1층 (가상 주소)", hours: [["평일", "08:00 ~ 21:00"], ["주말", "10:00 ~ 21:00"], ["휴무", "매주 월요일"]],
+    formT: "단체 주문·대관 문의", sel: ["단체 주문", "케이터링", "공간 대관", "기타"], float: "💬 문의하기",
+  },
+  biz: {
+    name: "한빛테크", h1: "현장에 맞는\n설비 시공을 약속합니다", lead: "공장·상가 전기·설비 시공 15년. 무료 현장 방문 견적부터 사후 관리까지 책임집니다.",
+    cta: "무료 견적 받기", navItems: "시공 분야", navContact: "견적 문의",
+    aboutT: "한빛테크를 선택하는 이유", aboutS: "약속한 날짜, 약속한 금액을 지킵니다.",
+    points: [["📋", "무료 현장 견적", "방문 후 투명한 견적서 제공"], ["🛠", "직영 시공", "하도급 없이 직접 시공"], ["🔧", "1년 무상 A/S", "시공 후에도 책임집니다"]],
+    itemsT: "시공 분야", itemsS: "주요 시공 분야입니다.",
+    items: [["⚡", "전기 공사", "분전반·조명·증설", "현장 견적"], ["❄️", "냉난방 설비", "시스템 에어컨 설치", "현장 견적"], ["🚿", "배관 공사", "급배수·누수 보수", "현장 견적"], ["🏭", "공장 설비", "라인 이전·유지보수", "현장 견적"]],
+    addr: "경기도 ○○시 ○○로 45 (가상 주소)", hours: [["평일", "09:00 ~ 18:00"], ["토요일", "09:00 ~ 13:00"], ["긴급 출동", "24시간 접수"]],
+    formT: "무료 견적 문의", sel: ["전기 공사", "냉난방 설비", "배관 공사", "기타"], float: "📞 견적 문의",
+  },
+};
+const type = new URLSearchParams(location.search).get("type") === "biz" ? "biz" : "cafe";
+const D = DATA[type];
+document.body.classList.add(type);
+document.title = D.name;
+const $ = (id) => document.getElementById(id);
+["name", "lead", "cta", "navItems", "navContact", "aboutT", "aboutS", "itemsT", "itemsS", "addr", "formT", "float"].forEach((k) => ($(k).textContent = D[k]));
+$("h1").innerHTML = D.h1.replace("\n", "<br>");
+$("points").innerHTML = D.points.map(([i, t, d]) => `<div class="card"><div class="ico">${i}</div><h3>${t}</h3><p>${d}</p></div>`).join("");
+$("itemList").innerHTML = D.items.map(([i, t, d, p]) => `<div class="card"><div class="ico">${i}</div><h3>${t}</h3><p>${d}</p><div class="price">${p}</div></div>`).join("");
+$("hours").innerHTML = D.hours.map(([a, b]) => `<p style="margin:4px 0"><b>${a}</b> &nbsp; ${b}</p>`).join("");
+$("formSel").innerHTML = D.sel.map((s) => `<option>${s}</option>`).join("");
+$("foot").textContent = `© ${D.name} · 이 사이트는 홈페이지 제작 데모용 샘플이며 상호·주소는 가상입니다.`;
+$("f").onsubmit = (e) => { e.preventDefault(); $("f").style.display = "none"; $("done").style.display = "block"; };
+</script>
+</body>
+</html>

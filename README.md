@@ -7,6 +7,9 @@
 | --- | --- |
 | `config.js` | **브랜드명·문구·가격·운영비·사후관리·크몽 링크·FAQ** — 보통 이것만 고치면 됨 |
 | `index.html` | 메인(서비스 소개, 데모 링크, 진행 방식, FAQ) |
+| `demo-merge.html` | 엑셀 여러 개 합치기·중복 제거·자동 집계 (대표 데모) |
+| `demo-homepage.html` + `samples/site.html` | 홈페이지 제작 샘플 (업종 2종, PC/태블릿/휴대폰 미리보기) |
+| `demo-admin.html` | 재고·입출고·거래처 관리 프로그램 |
 | `demo-excel.html` | 주문 엑셀 → 택배 송장 양식 변환 + 상품별 집계 (실제 파일 처리, 브라우저 안에서만) |
 | `demo-kiosk.html` | 무인매장 QR 결제 → 기기 ON/OFF + 사장님 현황판 (가짜 결제, 60배속 시계) |
 | `demo-dashboard.html` | 경쟁사 가격 모니터링 대시보드 (가상 샘플 데이터 + 수집 시뮬레이션) |

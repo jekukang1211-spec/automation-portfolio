@@ -44,10 +44,10 @@
     <h2>혹시 이런 일, 매일 손으로 하고 계신가요?</h2>
     <p class="muted">대부분 "원래 그렇게 하는 거"라고 생각하시지만, 거의 다 자동으로 바꿀 수 있습니다.</p>
     <div class="pain">
-      <div class="card"><b>📦 주문 엑셀 → 송장 양식 복붙</b><span class="muted small">같은 손님 주문 합치고, 칸 맞추고… 하루 30분</span></div>
-      <div class="card"><b>📊 매출·재고 집계표 작성</b><span class="muted small">여러 파일 열어서 숫자 옮겨 적기</span></div>
-      <div class="card"><b>🔎 경쟁사 가격 확인</b><span class="muted small">매일 사이트 돌아다니며 가격 메모</span></div>
-      <div class="card"><b>📞 전화·문자로 예약 받기</b><span class="muted small">장부에 적고, 노쇼에 속상하고</span></div>
+      <div class="card"><b>📊 엑셀 여러 개 복사·붙여넣기</b><span class="muted small">지점별·담당자별 파일 모아서 집계표 만들기</span></div>
+      <div class="card"><b>📦 재고·거래처를 엑셀로 관리</b><span class="muted small">누가 고쳤는지 모르고, 파일은 여러 버전</span></div>
+      <div class="card"><b>🌐 홈페이지가 없거나 낡음</b><span class="muted small">휴대폰에서 깨지고, 문의 받을 곳이 없음</span></div>
+      <div class="card"><b>🔎 매일 사이트 돌며 정보 확인</b><span class="muted small">가격·공고·리스트를 손으로 옮겨 적기</span></div>
     </div>
   </section>
 
@@ -55,6 +55,11 @@
     <h2>서비스 & 직접 체험 데모</h2>
     <p class="muted">각 데모는 실제로 작동합니다. 내 파일을 넣어봐도 브라우저 안에서만 처리되고 어디에도 전송되지 않습니다.</p>
     <div class="grid c3" id="svcList"></div>
+  </section>
+
+  <section style="padding-top:0">
+    <h2>다른 작업 사례</h2>
+    <div class="grid c2" id="others"></div>
   </section>
 
   <section>
@@ -113,14 +118,16 @@
       </div>
     </div>`).join("");
   const ac = S.aftercare;
-  document.getElementById("aftercareShort").textContent = `${ac.months}개월간 오류 수정·수시 관리 무상. 이후 월 유지보수 선택.`;
+  document.getElementById("aftercareShort").textContent = `${ac.detail} 무상 운영·유지보수. 이후 월 유지보수 선택.`;
+  document.getElementById("others").innerHTML = S.otherWorks.map((w) => `
+    <a class="card" href="${U.esc(w.demo)}" style="text-decoration:none;color:inherit"><h3>${U.esc(w.name)} →</h3><span class="muted small">${U.esc(w.desc)}</span></a>`).join("");
   document.getElementById("acMonths").textContent = ac.months;
   document.getElementById("acIn").innerHTML = ac.included.map((i) => `<li>${U.esc(i)}</li>`).join("");
   document.getElementById("acOut").innerHTML = ac.excluded.map((i) => `<li>${U.esc(i)}</li>`).join("");
   document.getElementById("acAfter").textContent = ac.after;
   document.getElementById("costNote").textContent = S.costNote;
   document.getElementById("costTable").innerHTML = U.table(["항목", "대략 비용", "비고"], S.costs);
-  const faq = [...S.faq, ["납품 후 문제가 생기면요?", `${ac.months}개월 동안 오류 수정과 수시 관리를 무상으로 해드립니다. ${ac.after}`]];
+  const faq = [...S.faq, ["납품 후 문제가 생기면요?", `패키지에 따라 ${ac.detail} 동안 오류 수정과 수시 관리를 무상으로 해드립니다. ${ac.after}`]];
   document.getElementById("faq").innerHTML = faq
     .map(([q, a]) => `<details><summary>${U.esc(q)}</summary><p>${U.esc(a)}</p></details>`).join("");
 </script>

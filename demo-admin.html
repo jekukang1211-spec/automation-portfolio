@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>재고 관리 프로그램</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .app { display: grid; grid-template-columns: 190px 1fr; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  @media (max-width: 760px) { .app { grid-template-columns: 1fr; } .side { display: flex; overflow-x: auto; } }
+  .side { background: #1c2333; color: #c9d1e3; padding: 14px 10px; }
+  .side b { display: block; color: #fff; padding: 4px 10px 14px; }
+  .side button { display: block; width: 100%; text-align: left; background: none; border: 0; color: inherit; font: inherit; padding: 9px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+  .side button.on { background: #2f3a52; color: #fff; font-weight: 700; }
+  .main { padding: 18px; min-width: 0; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 14px 0 10px; }
+  .toolbar input { max-width: 240px; }
+  td .row { gap: 4px; flex-wrap: nowrap; }
+  tr.low td { background: var(--warn-soft); }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; place-items: center; z-index: 50; padding: 16px; }
+  .modal.show { display: grid; }
+  .modal .card { width: 100%; max-width: 420px; }
+  .log { font-size: 13px; }
+  .log div { padding: 7px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 8px; }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="index.html" data-brand></a>
+  <a class="btn primary" data-kmong data-contact-text></a>
+</div></header>
+
+<main class="wrap">
+  <div class="demo-head">
+    <a href="index.html" class="small">← 전체 서비스</a>
+    <h1>엑셀 대신 쓰는 업무용 관리 프로그램</h1>
+    <p class="muted">재고·입출고·거래처를 한 화면에서. <b>여러 직원이 동시에</b> 쓰고, 재고가 부족하면 자동으로 표시됩니다. 직접 눌러보세요. 입고·출고·품목 추가가 다 작동합니다.</p>
+    <div class="notice">데모 데이터는 이 브라우저에만 저장됩니다. 실제 납품 시에는 서버 DB에 저장되어 PC·휴대폰 어디서든 같은 데이터를 보고, 직원별 로그인·권한도 나눌 수 있습니다. (재고 외에 고객·주문·예약·출퇴근 관리 등 원하는 업무로 제작)</div>
+  </div>
+
+  <section style="padding-top:16px">
+    <div class="app">
+      <div class="side">
+        <b>📦 재고관리</b>
+        <button data-v="stock" class="on">재고 현황</button>
+        <button data-v="log">입출고 기록</button>
+        <button data-v="vendor">거래처</button>
+      </div>
+      <div class="main" id="main"></div>
+    </div>
+    <div class="row" style="margin-top:10px"><button class="btn small" id="reset">데모 초기화</button></div>
+  </section>
+
+  <div class="cta-bar">
+    <div><h3 style="margin:0">지금 엑셀로 관리하는 업무가 있나요?</h3><span class="muted small">쓰시는 엑셀 파일을 보여주시면 그대로 프로그램으로 옮겨 드립니다. 기존 데이터도 옮겨드려요.</span></div>
+    <a class="btn primary" data-kmong data-contact-text></a>
+  </div>
+</main>
+<div class="modal" id="modal"><div class="card" id="modalBody"></div></div>
+<footer><div class="wrap">© <span data-brand></span> · 데모 데이터는 가상입니다.</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<script src="assets/common.js"></script>
+<script>
+// ---- 저장소: 실제 납품물에서는 서버 API(DB)로 바뀌는 부분 ----
+const KEY = "demo-admin-v1";
+const seed = () => ({
+  items: [
+    { id: 1, code: "A-001", name: "A4 복사용지 (박스)", cat: "사무용품", qty: 42, min: 10, price: 24000, vendor: "오피스마트" },
+    { id: 2, code: "A-002", name: "볼펜 (12입)", cat: "사무용품", qty: 6, min: 10, price: 3500, vendor: "오피스마트" },
+    { id: 3, code: "B-001", name: "포장 박스 (중)", cat: "포장재", qty: 230, min: 100, price: 450, vendor: "대한포장" },
+    { id: 4, code: "B-002", name: "에어캡 롤", cat: "포장재", qty: 8, min: 5, price: 18000, vendor: "대한포장" },
+    { id: 5, code: "C-001", name: "핸드타월 (박스)", cat: "소모품", qty: 3, min: 5, price: 21000, vendor: "클린유통" },
+    { id: 6, code: "C-002", name: "세제 4L", cat: "소모품", qty: 12, min: 4, price: 9800, vendor: "클린유통" },
+  ],
+  vendors: [
+    { name: "오피스마트", person: "김과장", note: "매주 화요일 납품" },
+    { name: "대한포장", person: "이대리", note: "100개 단위 주문" },
+    { name: "클린유통", person: "박실장", note: "월말 정산" },
+  ],
+  logs: [],
+});
+let db = U.store.get(KEY, null) || seed();
+const save = () => U.store.set(KEY, db);
+let view = "stock", q = "";
+
+function addLog(item, type, n, who = "관리자") {
+  db.logs.unshift({ t: new Date().toLocaleString("ko-KR", { hour12: false }), name: item.name, type, n, after: item.qty, who });
+}
+
+// ---- 화면 ----
+function render() {
+  document.querySelectorAll(".side [data-v]").forEach((b) => b.classList.toggle("on", b.dataset.v === view));
+  if (view === "stock") return renderStock();
+  if (view === "log") return renderLog();
+  renderVendor();
+}
+function renderStock() {
+  const low = db.items.filter((i) => i.qty <= i.min);
+  const value = db.items.reduce((s, i) => s + i.qty * i.price, 0);
+  const list = db.items.filter((i) => !q || (i.name + i.code + i.cat + i.vendor).includes(q));
+  main.innerHTML = `
+    <div class="kpis">
+      <div class="kpi"><div class="v">${db.items.length}개</div><div class="l">등록 품목</div></div>
+      <div class="kpi"><div class="v" style="color:var(--warn)">${low.length}개</div><div class="l">재고 부족</div></div>
+      <div class="kpi"><div class="v">${U.won(value)}</div><div class="l">재고 금액</div></div>
+      <div class="kpi"><div class="v">${db.logs.length}건</div><div class="l">입출고 기록</div></div>
+    </div>
+    <div class="toolbar">
+      <input id="search" placeholder="🔍 품목·코드·거래처 검색" value="${U.esc(q)}">
+      <span style="flex:1"></span>
+      <button class="btn small" id="exp">⬇ 엑셀로 저장</button>
+      <button class="btn small primary" id="add">+ 품목 추가</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>코드</th><th>품목</th><th>분류</th><th>현재고</th><th>최소</th><th>단가</th><th>거래처</th><th>입출고</th></tr></thead>
+      <tbody>${list.map((i) => `<tr class="${i.qty <= i.min ? "low" : ""}">
+        <td>${U.esc(i.code)}</td><td><b>${U.esc(i.name)}</b>${i.qty <= i.min ? ' <span class="badge warn">부족</span>' : ""}</td>
+        <td>${U.esc(i.cat)}</td><td><b>${U.num(i.qty)}</b></td><td>${U.num(i.min)}</td><td>${U.won(i.price)}</td><td>${U.esc(i.vendor)}</td>
+        <td><div class="row"><button class="btn small" data-in="${i.id}">+ 입고</button><button class="btn small" data-out="${i.id}">− 출고</button></div></td>
+      </tr>`).join("") || `<tr><td colspan="8" class="muted">검색 결과가 없습니다</td></tr>`}</tbody>
+    </table></div>`;
+  search.oninput = () => { q = search.value.trim(); const pos = search.selectionStart; renderStock(); search.focus(); search.setSelectionRange(pos, pos); };
+  add.onclick = openAdd;
+  exp.onclick = () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(db.items.map((i) => ({ 코드: i.code, 품목: i.name, 분류: i.cat, 현재고: i.qty, 최소재고: i.min, 단가: i.price, 거래처: i.vendor }))), "재고현황");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(db.logs.map((l) => ({ 일시: l.t, 품목: l.name, 구분: l.type, 수량: l.n, 처리후재고: l.after }))), "입출고기록");
+    XLSX.writeFile(wb, `재고현황_${U.ymd().replace(/-/g, "")}.xlsx`);
+  };
+  main.querySelectorAll("[data-in],[data-out]").forEach((b) => (b.onclick = () => openMove(+(b.dataset.in || b.dataset.out), b.dataset.in ? "입고" : "출고")));
+}
+function renderLog() {
+  main.innerHTML = `<h3>입출고 기록</h3><div class="log">${db.logs.length ? db.logs.slice(0, 50).map((l) =>
+    `<div><span>${l.t} · <b>${U.esc(l.name)}</b></span><span><span class="badge ${l.type === "입고" ? "ok" : "warn"}">${l.type}</span> ${U.num(l.n)}개 → 재고 ${U.num(l.after)}</span></div>`).join("")
+    : '<p class="muted">아직 기록이 없습니다. 재고 현황에서 입고·출고를 눌러보세요.</p>'}</div>`;
+}
+function renderVendor() {
+  main.innerHTML = `<h3>거래처</h3>${U.table(["거래처", "담당자", "메모", "취급 품목 수"], db.vendors.map((v) => [v.name, v.person, v.note, db.items.filter((i) => i.vendor === v.name).length + "개"]))}`;
+}
+
+// ---- 입력 창 ----
+const close = () => modal.classList.remove("show");
+modal.onclick = (e) => { if (e.target === modal) close(); };
+function openMove(id, type) {
+  const it = db.items.find((i) => i.id === id);
+  modalBody.innerHTML = `<h3>${type}: ${U.esc(it.name)}</h3><p class="muted small">현재고 ${U.num(it.qty)}개</p>
+    <label for="mq">수량</label><input id="mq" type="number" min="1" value="1">
+    <div class="row" style="margin-top:14px;justify-content:flex-end"><button class="btn" id="mc">취소</button><button class="btn primary" id="mo">${type} 처리</button></div>`;
+  modal.classList.add("show"); mq.select();
+  mc.onclick = close;
+  mo.onclick = () => {
+    const n = Math.floor(+mq.value);
+    if (!(n > 0)) return mq.focus();
+    if (type === "출고" && n > it.qty) { mq.style.borderColor = "var(--warn)"; return; }
+    it.qty += type === "입고" ? n : -n;
+    addLog(it, type, n); save(); close(); render();
+  };
+}
+function openAdd() {
+  modalBody.innerHTML = `<h3>품목 추가</h3>
+    <label for="an">품목명</label><input id="an" placeholder="예) 택배 송장 용지">
+    <label for="ac">분류</label><input id="ac" placeholder="예) 포장재">
+    <div class="grid c2" style="gap:8px;grid-template-columns:1fr 1fr">
+      <div><label for="aq">현재고</label><input id="aq" type="number" value="0"></div>
+      <div><label for="am">최소 재고</label><input id="am" type="number" value="5"></div>
+    </div>
+    <label for="ap">단가(원)</label><input id="ap" type="number" value="0">
+    <label for="av">거래처</label><select id="av">${db.vendors.map((v) => `<option>${U.esc(v.name)}</option>`).join("")}</select>
+    <div class="row" style="margin-top:14px;justify-content:flex-end"><button class="btn" id="mc">취소</button><button class="btn primary" id="mo">추가</button></div>`;
+  modal.classList.add("show"); an.focus();
+  mc.onclick = close;
+  mo.onclick = () => {
+    if (!an.value.trim()) return an.focus();
+    const id = Math.max(0, ...db.items.map((i) => i.id)) + 1;
+    db.items.push({ id, code: `N-${String(id).padStart(3, "0")}`, name: an.value.trim(), cat: ac.value.trim() || "기타", qty: +aq.value || 0, min: +am.value || 0, price: +ap.value || 0, vendor: av.value });
+    save(); close(); render();
+  };
+}
+
+document.querySelectorAll(".side [data-v]").forEach((b) => (b.onclick = () => { view = b.dataset.v; render(); }));
+reset.onclick = () => { if (confirm("데모 데이터를 처음 상태로 되돌릴까요?")) { db = seed(); save(); q = ""; render(); } };
+render();
+</script>
+</body>
+</html>
