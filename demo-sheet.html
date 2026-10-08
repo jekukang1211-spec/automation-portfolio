@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>구글 시트 업무 현황판</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  video { width: 100%; border-radius: var(--radius); border: 1px solid var(--border); background: #000; display: block; }
+  .shots img { width: 100%; border-radius: 10px; border: 1px solid var(--border); display: block; }
+  .shots figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  ol.flow li { margin: 6px 0; }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="index.html" data-brand></a>
+  <a class="btn primary" data-kmong data-contact-text></a>
+</div></header>
+
+<main class="wrap">
+  <div class="demo-head">
+    <a href="index.html" class="small">← 전체 서비스</a>
+    <h1>구글 시트 거래처 업무 현황판 (실제 동작 영상)</h1>
+    <p class="muted">구글 스프레드시트에 자동화 스크립트를 붙여 만든 <b>실제로 작동하는 현황판</b>입니다. 직원이 업무를 기록하면 거래처별 진행 상황이 즉시 자동으로 반영됩니다. 별도 서버 없이 구글 계정만으로 쓰기 때문에 운영비가 들지 않습니다.</p>
+    <div class="notice">🔊 소리를 켜고 보세요. 47초, 자막과 음성 설명이 들어 있습니다. 거래처명과 기록은 모두 예시 데이터입니다.</div>
+  </div>
+
+  <section style="padding-top:16px">
+    <video src="assets/shots/sheet_demo.mp4" controls playsinline preload="metadata" poster="assets/shots/sheet_result.png"></video>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="grid c2">
+      <div class="card">
+        <h3>이렇게 동작합니다</h3>
+        <ol class="flow small">
+          <li>시트 메뉴 <b>업무 현황판 → 업무 기록 입력</b>을 누르면 오른쪽에 입력창이 열립니다</li>
+          <li>거래처와 업무 단계를 고르고 내용을 적어 <b>기록하기</b></li>
+          <li>로그인한 <b>직원 이름과 날짜가 자동 기록</b>됩니다</li>
+          <li>거래처 현황에 <b>진행 단계·최근 업무·경과일이 즉시 반영</b>되고, 오래 방치된 거래처는 빨간색으로 표시됩니다</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>이런 곳에 맞춰 만들 수 있어요</h3>
+        <ul class="small">
+          <li>거래처·고객 관리, 상담 이력 관리</li>
+          <li>주문·발주·납품 진행 현황</li>
+          <li>직원별 업무 일지, 재택 근무 보고</li>
+          <li>지금 쓰시는 엑셀·구글 시트 양식을 그대로 살려서 자동화</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0" class="shots">
+    <div class="grid c2">
+      <figure style="margin:0"><img src="assets/shots/sheet_input.png" alt="업무 기록 입력창"><figcaption>업무 기록 입력창 (담당자·날짜 자동)</figcaption></figure>
+      <figure style="margin:0"><img src="assets/shots/sheet_result.png" alt="자동 반영된 거래처 현황"><figcaption>기록 후 자동 반영된 거래처 현황</figcaption></figure>
+    </div>
+  </section>
+
+  <div class="cta-bar">
+    <div><h3 style="margin:0">지금 쓰시는 시트도 이렇게 바꿀 수 있어요</h3><span class="muted small">시트 구조만 보여주시면 연동 방식과 견적을 무료로 알려드립니다.</span></div>
+    <a class="btn primary" data-kmong data-contact-text></a>
+  </div>
+</main>
+<footer><div class="wrap">© <span data-brand></span> · 시연 데이터는 가상입니다.</div></footer>
+<script src="config.js"></script>
+<script src="assets/common.js"></script>
+</body>
+</html>
