@@ -197,7 +197,7 @@ function run(aoa) {
     const res = process(orders);
     last = { orders, res, ms: performance.now() - t0 };
     render();
-    result.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (location.hash !== "#sample") result.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (e) { alert(e.message); }
 }
 
@@ -263,6 +263,8 @@ function sampleAoa() {
   return rows;
 }
 sampleRun.addEventListener("click", () => run(sampleAoa()));
+// 링크 끝에 #sample 을 붙이면 샘플 결과를 바로 보여준다 (홍보용 링크·캡처용)
+if (location.hash === "#sample") run(sampleAoa());
 sampleDl.addEventListener("click", () => {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sampleAoa()), "주문목록");
